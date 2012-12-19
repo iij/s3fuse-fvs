@@ -1,0 +1,133 @@
+s3fuse-fvs
+==========
+
+s3fuse-fvs is a FUSE (Filesystem in Userspace) driver for Amazon S3 and Google Storage and IIJ FV/S.
+
+- For notes on building and installing s3fuse-fvs, see INSTALL.
+- For copyright/license information, see COPYING.
+- For notes on configuring and running s3fuse-fvs, keep reading.
+
+Goals
+-----
+
+- Thread safety -- concurrent operations should behave according to the
+  principle of least astonishment.
+- Compatibility with other S3 applications, including Amazon's web-based S3
+  browser.
+- Improved upload/download performance (by using multipart transfers).
+- Support for extended file attributes.
+- Support for consistency checking (using S3's MD5-testing features).
+
+Known Issues
+------------
+
+- Reduced-redundancy storage (RRS) is not supported.
+- Directory representation is not compatible with Google Storage Manager.  In
+  particular:
+  - Directories created by s3fuse-fvs appear to contain an empty, unnamed file in
+    Google Storage Manager.
+  - s3fuse-fvs lists empty directories created by Google Storage Manager as 
+    regular files named <directory-name>_$folder$.
+  - s3fuse-fvs cannot list the contents of directories created by Google Storage 
+    Manager.
+
+Configuration
+-------------
+
+Edit /etc/s3fuse-fvs.conf after installing.  The following keys must be defined:
+
+  - service: This must be either "aws" or "google-storage" or "fvs".
+  - bucket_name: This is the name of your S3 bucket.
+  - auth_data: Authentication data (service-specific, see below).
+
+auth_data for Amazon Web Services:
+
+  For Amazon S3, set auth_data to the full path of a file containing your AWS 
+  Access Key ID followed by a space, followed by the AWS Secret Access Key, 
+  i.e.:
+
+    auth_data=/home/user/.s3fuse-fvs/aws.key
+
+  Where aws.key contains:
+
+    <aws-access-key-id> <aws-secret-access-key>
+
+  AWS credentials can be obtained using Amazon's AWS console.  The console 
+  can also be used to create an S3 bucket.  s3fuse-fvs will fail to start if the 
+  key file is group- or world-readable or -writable.
+
+auth_data for Google Storage:
+
+  To use Google Storage with OAuth, run s3fuse-fvs_gs_get_token to obtain a token:
+
+    s3fuse-fvs_gs_get_token <path-to-token-file>
+
+  This utility will generate a URL that must be copied and pasted into the 
+  address bar of a browser.  You will then be asked to sign into your Google
+  account (if not already signed in), and then asked to grant Google Storage
+  access rights to s3fuse-fvs.  After accepting, return to s3fuse_gs_get_token and
+  enter the authentication code.
+
+  Next, set auth_data in s3fuse-fvs.conf to the location of the token file, e.g.:
+
+    auth_data=/home/user/.s3fuse-fvs/gs.token
+
+  s3fuse-fvs will fail to start if the token file is group- or world-readable or 
+  -writable.
+
+Non-US AWS Buckets
+------------------
+
+You may need to modify the "aws_service_endpoint" configuration option to 
+support non-US buckets.  For instance, the following line in s3fuse-fvs.conf
+enables use of EU buckets:
+ 
+  aws_service_endpoint=s3-eu-west-1.amazonaws.com
+
+Running
+-------
+
+s3fuse-fvs can be launched from the command line:
+
+  s3fuse-fvs [options] <mountpoint>
+
+Some (potentially useful) command line options:
+
+  -f                Keeps s3fuse-fvs in the foreground (i.e., prevents it from 
+                    daemonizing).  Useful when debugging.
+  -v                Enable verbose logging to stderr (repeat for added 
+                    verbosity).
+  -o <fuse-options> Pass additional options, separated by commas.
+    options:
+      allow_other   Allow other users to access the mounted file system.
+      allow_root    Allow root to access the mounted file system.
+      config=<file> Use <file> rather than the default configuration file.
+
+This is not intended to be an exhaustive listing of FUSE options.
+
+Alternatively, s3fuse-fvs can be launched by mount if an appropriate entry exists
+in /etc/fstab:
+
+  s3fuse-fvs <mountpount> fuse defaults,noauto,user,allow_other 0 0
+
+"user" allows non-root users to mount the file system.  "noauto" prevents the
+file system from being automatically mounted at boot.
+
+Multiple buckets can be mounted simultaneously, provided each has its own
+configuration file and a corresponding entry in /etc/fstab:
+
+  s3fuse-fvs /media/bucket0 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse-fvs.bucket0.conf 0 0
+  s3fuse-fvs /media/bucket1 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse-fvs.bucket1.conf 0 0
+
+MacOS
+-----
+
+Early MacOS support is available as of s3fuse0.12.  This support is built on
+fuse4x, which can be installed with MacPorts:
+
+  sudo port install fuse4x
+
+Run s3fuse the same way you would on a Linux system.  Passing the 
+"noappledouble" option to FUSE is strongly suggested -- this will prevent
+MacOS (the Finder?) from trying to open or create .DS_Store files in every 
+directory you browse through.

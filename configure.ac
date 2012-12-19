@@ -1,0 +1,91 @@
+AC_PREREQ(2.63)
+AC_INIT([FUSE Driver for Amazon S3 + FV/S],[0.12.3],[],[s3fuse-fvs])
+AM_INIT_AUTOMAKE([no-define foreign])
+AC_CONFIG_SRCDIR([src/logger.h])
+
+AC_PROG_CXX
+AC_PROG_CC
+
+AC_ARG_ENABLE(
+  [build-rpm], 
+  [  --enable-build-rpm      Enable RPM build support],
+  [case "${enableval}" in
+    yes) build_rpm=true ;;
+    no)  build_rpm=false ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for --enable-build-rpm]) ;;
+   esac], [build_rpm=false])
+
+AC_ARG_ENABLE(
+  [tests], 
+  [  --enable-tests          Build test programs],
+  [case "${enableval}" in
+    yes) build_tests=true ;;
+    no)  build_tests=false ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for --enable-tests]) ;;
+   esac], [build_tests=false])
+
+AC_ARG_ENABLE(
+  [darwin],
+  [  --enable-darwin         Enable support for Darwin (Mac OS X)],
+  [case "${enableval}" in
+     yes) darwin=true ;;
+     no)  darwin=false ;;
+     *) AC_MSG_ERROR([bad value ${enableval} for --enable-darwin]) ;;
+   esac], [darwin=false])
+
+AM_CONDITIONAL([BUILD_RPM], [test x$build_rpm = xtrue])
+AM_CONDITIONAL([BUILD_TESTS], [test x$build_tests = xtrue])
+
+if test "x$darwin" = xtrue; then
+  LDFLAGS="$LDFLAGS -framework CoreFoundation -framework Security -L/opt/local/lib"
+else
+  LDFLAGS="$LDFLAGS -Wl,--as-needed"
+fi
+
+BOOST_REQUIRE([1.41])
+BOOST_THREADS()
+
+AC_CHECK_LIB([pthread], [pthread_create], [], [AC_MSG_ERROR([cannot find pthreads])])
+
+PKG_CHECK_MODULES([DEPS_XML], [libxml-2.0 >= 2.7.6 libxml++-2.6 >= 2.28.0])
+PKG_CHECK_MODULES([DEPS_CURL], [libcurl >= 7.0.0])
+PKG_CHECK_MODULES([DEPS_FUSE], [fuse >= 2.7.3])
+
+PKG_CHECK_EXISTS([libssl >= 0.9.8], [have_openssl=true], [have_openssl=false])
+PKG_CHECK_EXISTS([gnutls >= 2.8.5], [have_gnutls=true], [have_gnutls=false])
+
+if test "x$have_openssl" = xtrue; then
+  PKG_CHECK_MODULES([DEPS_OPENSSL], [libssl >= 0.9.8])
+  CPPFLAGS="$CPPFLAGS -DHAVE_OPENSSL "
+fi
+
+if test "x$have_gnutls" = xtrue; then
+  PKG_CHECK_MODULES([DEPS_GNUTLS], [gnutls >= 2.8.5])
+  CPPFLAGS="$CPPFLAGS -DHAVE_GNUTLS "
+fi
+
+AC_CHECK_HEADERS([inttypes.h stdint.h stdlib.h string.h sys/time.h syslog.h])
+
+AC_HEADER_STDBOOL
+AC_TYPE_UID_T
+AC_C_INLINE
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_STRUCT_ST_BLOCKS
+AC_TYPE_UINT64_T
+AC_TYPE_UINT8_T
+
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([ftruncate gettimeofday memset strchr strerror strstr strtol])
+
+AC_CONFIG_FILES([Makefile src/Makefile src/tests/Makefile])
+AM_COND_IF([BUILD_RPM], [AC_CONFIG_FILES([dist/Makefile])])
+
+AC_SUBST([AM_CXXFLAGS], ["-g -Wall -Werror"])
+AC_SUBST([AM_CFLAGS], ["-g -Wall -Werror"])
+AC_SUBST([AM_CPPFLAGS], ["$DEPS_XML_CFLAGS $DEPS_CURL_CFLAGS $DEPS_FUSE_CFLAGS $DEPS_OPENSSL_CFLAGS $DEPS_GNUTLS_CFLAGS"])
+AC_SUBST([AM_LDFLAGS], ["$DEPS_XML_LIBS $DEPS_CURL_LIBS $DEPS_FUSE_LIBS $DEPS_OPENSSL_LIBS $DEPS_GNUTLS_LIBS"])
+
+AC_OUTPUT
