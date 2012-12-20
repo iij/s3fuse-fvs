@@ -1,9 +1,0 @@
-* パッケージの作り方
-- XXXXXXXXXXXXX
-- パッケージ化する
-  - 今、CENTOSでビルドしたいなら、libxml2 と libxml2++ とcurl(--with-ssl --without-nss付き) を /usr/local にインストールして以下を叩く
-  - PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/pkgconfig LDFLAGS="-L/usr/local/lib -L/usr/lib64" LIBS="-lboost_thread-mt -lcurl" ./configure --prefix=/usr/local
-  - ld.confで/usr/local/libが優先されてロードされること、インストール後ldconfigやって更新すること
-  - curlはstaticリンクすべきかも
-
-
