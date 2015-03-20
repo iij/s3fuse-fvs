@@ -1,13 +1,13 @@
 ACLOCAL_AMFLAGS = -I .
 
 if BUILD_RPM
-SUBDIRS= package man src
+SUBDIRS= src package man
 else
-SUBDIRS= man src
+SUBDIRS= src man
 endif
 
 rpm: dist
-	rpmdir=`pwd`/package;                                              \
+	rpmdir=`pwd`/package/rpm;                                          \
 	rm -rf $$rpmdir;                                                   \
 	mkdir -p $$rpmdir/SOURCES;                                         \
 	mkdir -p $$rpmdir/RPMS;                                            \
