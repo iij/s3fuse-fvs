@@ -8,27 +8,25 @@ Summary: FUSE Driver for AWS S3 and Google Storage
 Name: %{name}
 Version: %{version}
 Release: %{release}
-Source: %{name}-%{version}.tar.gz
+Source: s3fuse-%{version}.tar.gz
 Group: Applications/System
 BuildRoot: %{_builddir}/%{name}-root
 License: Apache-2.0
-BuildRequires: openssl-devel >= 0.98
+BuildRequires: openssl-devel >= 0.9.8
 BuildRequires: boost-devel >= 1.41
-BuildRequires: fuse-devel >= 2.8.3
-BuildRequires: libxml++-devel >= 2.28.0
+BuildRequires: fuse-devel >= 2.7.3
 BuildRequires: libxml2-devel >= 2.7.6
 BuildRequires: libcurl >= 7.0.0
-Requires: openssl >= 0.98
+Requires: openssl >= 0.9.8
 Requires: boost >= 1.41
-Requires: fuse-libs >= 2.8.3
-Requires: libxml++ >= 2.28.0
+Requires: fuse-libs >= 2.7.3
 Requires: libcurl >= 7.0.0
 
 %description
 Provides a FUSE filesystem driver for Amazon AWS S3 and Google Storage buckets.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n s3fuse-%{version}
 
 %build
 autoreconf --force --install
