@@ -1,11 +1,12 @@
-s3fuse-fvs
-==========
+s3fuse
+======
 
-s3fuse-fvs is a FUSE (Filesystem in Userspace) driver for Amazon S3 and Google Storage and IIJ FV/S.
+s3fuse is a FUSE (Filesystem in Userspace) driver for Amazon S3 and Google 
+Storage.
 
-- For notes on building and installing s3fuse-fvs, see INSTALL.
+- For notes on building and installing s3fuse, see INSTALL.
 - For copyright/license information, see COPYING.
-- For notes on configuring and running s3fuse-fvs, keep reading.
+- For notes on configuring and running s3fuse, keep reading.
 
 Goals
 -----
@@ -22,93 +23,355 @@ Known Issues
 ------------
 
 - Reduced-redundancy storage (RRS) is not supported.
-- Directory representation is not compatible with Google Storage Manager.  In
-  particular:
-  - Directories created by s3fuse-fvs appear to contain an empty, unnamed file in
-    Google Storage Manager.
-  - s3fuse-fvs lists empty directories created by Google Storage Manager as 
-    regular files named <directory-name>_$folder$.
-  - s3fuse-fvs cannot list the contents of directories created by Google Storage 
-    Manager.
+
+POSIX Compliance
+----------------
+
+s3fuse is mostly POSIX compliant, except that:
+
+  - Last-access time (atime) is not recorded.
+  - Hard links are not supported.
+
+Some notes on testing:
+
+  - Use pjd-fstest-20080816 from http://www.tuxera.com/community/posix-test-suite/.
+  - Bucket must be mounted as root and with "-o allow_other,default_permissions,
+    attr_timeout=0".
+  - Run tests as root from mount point, not a subdirectory.
+
+All tests should pass, except:
+
+  chown/00.t: 141, 145, 149, 153
+    [FUSE doesn't call chown when uid == -1 and gid == -1]
+
+  mkdir/00.t: 30
+  mkfifo/00.t: 30
+  open/00.t: 30
+    [atime is not recorded]
+
+  link/*.t
+  rename/00.t: 7-9, 11, 13-14, 27-29, 31, 33-34
+  unlink/00.t: 15-17, 20-22, 51-53
+    [hard links are not supported]
 
 Configuration
 -------------
 
-Edit /etc/s3fuse-fvs.conf after installing.  The following keys must be defined:
+s3fuse looks for a configuration file in the following locations:
 
-  - service: This must be either "aws" or "google-storage" or "fvs".
+  1. Whatever path is passed on the command line with "-o config=path", if any.
+
+  2. ~/.s3fuse/s3fuse.conf
+
+  3. $sysconfdir/s3fuse.conf, where $sysconfdir is the system configuration
+     path (such as /etc, /usr/local/etc, /opt/local/etc).
+
+Edit the template in $sysconfdir/s3fuse.conf after installing.  The following 
+keys must be defined:
+
+  - service: This must be either "aws" or "google-storage".
   - bucket_name: This is the name of your S3 bucket.
-  - auth_data: Authentication data (service-specific, see below).
 
-auth_data for Amazon Web Services:
+You'll then have to define some service-specific keys.
 
-  For Amazon S3, set auth_data to the full path of a file containing your AWS 
-  Access Key ID followed by a space, followed by the AWS Secret Access Key, 
-  i.e.:
+Amazon Web Services
+-------------------
 
-    auth_data=/home/user/.s3fuse-fvs/aws.key
+For Amazon S3, set aws_secret_file to the full path of a file containing your 
+AWS Access Key ID followed by a space, followed by the AWS Secret Access Key, 
+e.g.:
 
-  Where aws.key contains:
+  aws_secret_file=~/.s3fuse/aws.key
 
-    <aws-access-key-id> <aws-secret-access-key>
+Where aws.key contains:
 
-  AWS credentials can be obtained using Amazon's AWS console.  The console 
-  can also be used to create an S3 bucket.  s3fuse-fvs will fail to start if the 
-  key file is group- or world-readable or -writable.
+  <aws-access-key-id> <aws-secret-access-key>
 
-auth_data for Google Storage:
-
-  To use Google Storage with OAuth, run s3fuse-fvs_gs_get_token to obtain a token:
-
-    s3fuse-fvs_gs_get_token <path-to-token-file>
-
-  This utility will generate a URL that must be copied and pasted into the 
-  address bar of a browser.  You will then be asked to sign into your Google
-  account (if not already signed in), and then asked to grant Google Storage
-  access rights to s3fuse-fvs.  After accepting, return to s3fuse_gs_get_token and
-  enter the authentication code.
-
-  Next, set auth_data in s3fuse-fvs.conf to the location of the token file, e.g.:
-
-    auth_data=/home/user/.s3fuse-fvs/gs.token
-
-  s3fuse-fvs will fail to start if the token file is group- or world-readable or 
-  -writable.
+AWS credentials can be obtained using Amazon's AWS console.  The console 
+can also be used to create an S3 bucket.  s3fuse will fail to start if the 
+key file is group- or world-readable or -writable.
 
 Non-US AWS Buckets
 ------------------
 
 You may need to modify the "aws_service_endpoint" configuration option to 
-support non-US buckets.  For instance, the following line in s3fuse-fvs.conf
+support non-US buckets.  For instance, the following line in s3fuse.conf
 enables use of EU buckets:
  
   aws_service_endpoint=s3-eu-west-1.amazonaws.com
 
+Google Storage
+--------------
+
+To use Google Storage with OAuth, run s3fuse_gs_get_token to obtain a token:
+
+  $ s3fuse_gs_get_token <path-to-token-file>
+
+This utility will generate a URL that must be copied and pasted into the 
+address bar of a browser.  You will then be asked to sign into your Google
+account (if not already signed in), and then asked to grant Google Storage
+access rights to s3fuse.  After accepting, return to s3fuse_gs_get_token and
+enter the authentication code.
+
+Next, set gs_token_file in s3fuse.conf to the location of the token file, e.g.:
+
+  gs_token_file=~/.s3fuse/gs.token
+
+s3fuse will fail to start if the token file is group- or world-readable or 
+-writable.
+
+File Encryption
+---------------
+
+s3fuse-0.13 adds early support for transparent file content encryption, with 
+access controlled by passwords, local key files, or a combination of both.
+
+Before enabling encryption in s3fuse, consider the following:
+
+  - If you forget your password or lose your key file, you will lose access
+    to your encrypted files.  There is no recovery mechanism.
+
+  - Using s3fuse encryption will break compatibility with other S3 tools.  
+    Files will remain visible to other applications, but their contents will
+    be, unsurprisingly, encrypted.
+
+  - Once encryption is enabled, all files created by s3fuse will encrypted.  To
+    disable this behavior, set "encrypt_new_files=no" in s3fuse.conf.  Doing
+    this will permit access to existing encrypted files, but new files will be
+    unencrypted.
+
+  - Only file contents are encrypted.  Names are not.  Object metadata is not.  
+    Symlink targets are not.  Directory contents are not.
+
+  - s3fuse encrypts contents during upload and decrypts during download.  The 
+    locally-cached copy of an open file (which is generally kept in /tmp) 
+    remains unencrypted.
+
+Setting Up File Encryption
+--------------------------
+
+Step 1: Get basic s3fuse functionality working
+
+  Edit s3fuse.conf to set the name of your bucket, endpoint details, etc. and
+  verify that you can mount your bucket.
+
+Step 2: Passwords vs. key files
+
+  Decide how you want to secure access to the bucket.  If you use passwords,
+  you will have to enter the password you choose every time you mount the 
+  bucket.  If you use key files, you can mount the bucket unattended, but 
+  anyone who gains access to your key file will also be able to decrypt your
+  files.  It is possible, by creating multiple keys, to use both passwords
+  and key files, or to use several passwords, or several key files, etc.  This
+  permits the use of the same bucket, for instance, by multiple users or on
+  multiple machines.
+
+  Note that this decision need not be permanent -- it is possible to change 
+  between modes after the volume key has been created (see s3fuse_vol_key(1)).
+
+  Each key is uniquely identified by a key ID which you will specify when you
+  create a key in step 3.
+
+Step 3: Generate a key
+
+  Using s3fuse_vol_key, generate a new key for your bucket:
+
+  $ s3fuse_vol_key generate my_password_key_id
+
+  You will be prompted for a password, and then prompted to confirm your 
+  password.  If instead of passwords you want to use key files:
+
+  $ s3fuse_vol_key --out-key ~/.s3fuse/bucket-0.vk generate my_key_file_id
+
+  (If your bucket already contains a key, this step will fail.)
+
+Step 4: Enable encryption in s3fuse.conf
+
+  Edit s3fuse.conf to add the following lines:
+
+    use_encryption=yes
+    volume_key_id=my_new_key_id
+
+  (where "my_new_key_id" is the key ID used in step 2).
+
+  If you're using key files, you'll have to specify the location of your key:
+
+    use_encryption=yes
+    volume_key_id=my_key_file_id
+    volume_key_file=~/.s3fuse/bucket-0.vk
+
+Step 5: Mount the bucket
+
+  If "volume_key_file" is not set in s3fuse.conf, s3fuse will prompt for a 
+  password when mounting the bucket.  During the mount process, It verifies 
+  that the password (or key contained in the specified key file) is valid.
+
+Step 6: Add other keys (optional)
+
+  If you'd like to add other passwords or key files, clone the existing key
+  with s3fuse_vol_key:
+
+  $ s3fuse_vol_key clone my_new_key_id my_second_key_id
+
+  (where "my_new_key_id" is the key ID used in step 2).
+
+  Be sure to adjust s3fuse.conf to use the second key ID.
+
+File Encryption Details
+-----------------------
+
+File contents are encrypted with AES, in CTR mode, using a 256-bit key unique 
+to the file.  The unique file key, a nonce, and a hash of the plaintext are 
+then encrypted with AES in CBC mode using the volume key and a random IV.  
+The encrypted key/nonce/hash combination and the IV are stored out of band as 
+file metadata attributes.
+
+The volume key is itself encrypted using either a password (which then must be 
+supplied by the user when mounting the bucket) or a key file (specified by
+the "volume_key_file" configuration option).  This indirection makes it 
+possible to change the password (or key file) without having to reencrypt
+every file in the bucket).
+
+OS X
+----
+
+Early OS X support is available as of s3fuse-0.12.  This support is built on
+fuse4x, which can be installed with MacPorts:
+
+  $ sudo port install fuse4x
+
+Run s3fuse the same way you would on a Linux system.
+
+OS X Precompiled Binaries
+-------------------------
+
+As of s3fuse-0.13, precompiled binaries are available for OS X.  s3fuse can be
+installed in the usual manner (by dragging the app bundle into the Applications
+folder).  You can then run s3fuse one of two ways:
+
+Method 1: Default options
+
+  This is how s3fuse runs if you double-click the "s3fuse" icon.  Before 
+  launching s3fuse, create a directory named ".s3fuse" in your home directory.
+  Edit the configuration file template (located at 
+  /Applications/s3fuse.app/Contents/Resources/s3fuse.conf) and save a copy in
+  "~/.s3fuse/s3fuse.conf".  When launching s3fuse, a Terminal window may appear
+  to prompt for a volume encryption key if encryption is enabled.  Error
+  messages will be logged to syslog (in /var/log/system.log, by default) rather
+  than to the console.
+
+Method 2: Command line
+
+  s3fuse can be launched from the command line just as it could be if it were
+  built from source.  In a Terminal window:
+
+  $ /Applications/s3fuse.app/Contents/Resources/bin/s3fuse [options] <mountpoint>
+
+  will launch s3fuse.  Command line options are described in s3fuse(1).
+
+The "easy" option, method 1, is very much a work in progress.
+
+Glacier
+-------
+
+s3fuse-0.13 adds preliminary support for restoring files from Glacier.  Before
+reading further, read this:
+
+  http://aws.typepad.com/aws/2012/11/archive-s3-to-glacier.html
+
+Pay particular attention to the pricing structure for restore requests.
+
+Opening a file archived to Glacier will return an -EIO error.  If s3fuse's 
+Glacier support is enabled, requests can be issued to restore files to S3.  
+Three extended attributes are used to query Glacier-related status 
+information:
+
+  - s3fuse_storage_class: Reports the current storage class of the object
+      (can be STANDARD, REDUCED_REDUNDANCY, or GLACIER).
+  - s3fuse_restore_ongoing: "true" if a restore of the object is ongoing, 
+      "false" otherwise.
+  - s3fuse_restore_expiry: If the object is a restored copy of a Glacier 
+      archive, this will be the date at which the restored copy expires.
+
+Restores are initiated by setting the "s3fuse_request_restore" extended
+attribute to the number of days to retain the retrieved copy.  For instance,
+to restore "some_path/some_file" for four days, assuming the bucket is mounted 
+at /mnt, on OS X:
+
+  $ xattr -w s3fuse_request_restore 4 /mnt/some_path/some_file
+
+And on Linux:
+
+  $ setfattr -n user.s3fuse_request_restore -v 4 /mnt/some_path/some_file
+
+The status of a pending restore operation can be checked using xattr/getfattr:
+
+  $ xattr -l /mnt/some_path/some_file
+  s3fuse_content_type: binary/encrypted-s3fuse-file_0100
+  s3fuse_etag: "9d768fd6ff0386566152ddad5fb3cc10"
+  s3fuse_restore_ongoing: true
+  s3fuse_sha256: 32f1e12dc2d4101873e85fe99147ccbadff06925811e7e79e3fbae934336aeb4
+  s3fuse_storage_class: GLACIER
+
+  $ getfattr -d /mnt/some_path/some_file
+  # file: /mnt/some_path/some_file
+  user.s3fuse_content_type="binary/encrypted-s3fuse-file_0100"
+  user.s3fuse_etag="\"9d768fd6ff0386566152ddad5fb3cc10\""
+  user.s3fuse_restore_ongoing="true"
+  user.s3fuse_sha256="32f1e12dc2d4101873e85fe99147ccbadff06925811e7e79e3fbae934336aeb4"
+  user.s3fuse_storage_class="GLACIER" 
+
+Upon completion, restored file attributes will list an expiry date:
+
+  $ xattr -l /mnt/some_path/some_file
+  s3fuse_content_type: binary/encrypted-s3fuse-file_0100
+  s3fuse_etag: "9d768fd6ff0386566152ddad5fb3cc10"
+  s3fuse_request_restore: set-to-num-days-for-restore
+  s3fuse_restore_expiry: Thu, 13 Dec 2012 00:00:00 GMT
+  s3fuse_restore_ongoing: false
+  s3fuse_sha256: 32f1e12dc2d4101873e85fe99147ccbadff06925811e7e79e3fbae934336aeb4
+  s3fuse_storage_class: GLACIER
+
+  $ getfattr -d /mnt/some_path/some_file
+  # file: /mnt/some_path/some_file
+  user.s3fuse_content_type="binary/encrypted-s3fuse-file_0100"
+  user.s3fuse_etag="\"9d768fd6ff0386566152ddad5fb3cc10\""
+  user.s3fuse_request_restore="set-to-num-days-for-restore"
+  user.s3fuse_restore_expiry="Thu, 13 Dec 2012 00:00:00 GMT"
+  user.s3fuse_restore_ongoing="false"
+  user.s3fuse_sha256="32f1e12dc2d4101873e85fe99147ccbadff06925811e7e79e3fbae934336aeb4"
+  user.s3fuse_storage_class="GLACIER"
+
+Restored files are functionally read-only.  Opening a restored file for writing
+will not fail, but the flush operation that attempts to upload the file back to 
+S3 will fail.
+
+By default, Glacier support is disabled.  Enable it by setting the following 
+option in s3fuse.conf:
+
+  allow_glacier_restores=true
+
+NOTE: With Glacier support enabled, every "xattr -l" or "getfattr -d" (or any 
+equivalent operation that queries file extended attributes) will result in a 
+LIST request.  LIST requests are charged at 10x the rate of GET requests:
+
+  http://aws.amazon.com/s3/pricing/
+
 Running
 -------
 
-s3fuse-fvs can be launched from the command line:
+s3fuse can be launched from the command line:
 
-  s3fuse-fvs [options] <mountpoint>
+  s3fuse [options] <mountpoint>
 
-Some (potentially useful) command line options:
+See s3fuse(1) or "s3fuse --help" for information on command-line options.
 
-  -f                Keeps s3fuse-fvs in the foreground (i.e., prevents it from 
-                    daemonizing).  Useful when debugging.
-  -v                Enable verbose logging to stderr (repeat for added 
-                    verbosity).
-  -o <fuse-options> Pass additional options, separated by commas.
-    options:
-      allow_other   Allow other users to access the mounted file system.
-      allow_root    Allow root to access the mounted file system.
-      config=<file> Use <file> rather than the default configuration file.
+Adding to fstab
+---------------
 
-This is not intended to be an exhaustive listing of FUSE options.
+s3fuse can be launched by mount(8) if an appropriate entry exists in /etc/fstab:
 
-Alternatively, s3fuse-fvs can be launched by mount if an appropriate entry exists
-in /etc/fstab:
-
-  s3fuse-fvs <mountpount> fuse defaults,noauto,user,allow_other 0 0
+  s3fuse <mountpount> fuse defaults,noauto,user,allow_other 0 0
 
 "user" allows non-root users to mount the file system.  "noauto" prevents the
 file system from being automatically mounted at boot.
@@ -116,18 +379,5 @@ file system from being automatically mounted at boot.
 Multiple buckets can be mounted simultaneously, provided each has its own
 configuration file and a corresponding entry in /etc/fstab:
 
-  s3fuse-fvs /media/bucket0 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse-fvs.bucket0.conf 0 0
-  s3fuse-fvs /media/bucket1 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse-fvs.bucket1.conf 0 0
-
-MacOS
------
-
-Early MacOS support is available as of s3fuse0.12.  This support is built on
-fuse4x, which can be installed with MacPorts:
-
-  sudo port install fuse4x
-
-Run s3fuse the same way you would on a Linux system.  Passing the 
-"noappledouble" option to FUSE is strongly suggested -- this will prevent
-MacOS (the Finder?) from trying to open or create .DS_Store files in every 
-directory you browse through.
+  s3fuse /media/bucket0 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse.bucket0.conf 0 0
+  s3fuse /media/bucket1 fuse defaults,noauto,user,allow_other,config=/etc/s3fuse.bucket1.conf 0 0

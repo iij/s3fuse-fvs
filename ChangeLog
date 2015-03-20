@@ -1,24 +1,78 @@
+s3fuse (0.16) unstable; urgency=low
 
-s3fuse-fvs (0.12.3) release 3
-  * Fixed handling in case not support next marker by service
+  * Fix Google Cloud Storage "Access Denied" bug by requesting token with
+    full_control scope instead of just read_write.
+  * Update POSIX testing notes in README to mention attr_timeout option.
+  * Return EINVAL when truncating if requested size exceeds 4 GB.
+  * Fix HTTP header response processing.
+  * Add configuration option for Google Cloud Storage project ID.
+  * Set HTTP user agent.
+  * Test bucket access before daemonizing.
 
- -- Hiroyuki Kakine <kakine@iij.ad.jp>  Thu, 31 Oct 2012 17:19:00 +0900
+ -- Tarick Bedeir <tarick@bedeir.com>  Mon, 02 Mar 2015 07:36:12 -0800
 
-s3fuse-fvs (0.12.2)
-  * Set default endpoint by service
-  * Change default config file path
+s3fuse (0.15) unstable; urgency=low
 
- -- Hiroyuki Kakine <kakine@iij.ad.jp>  Thu, 25 Oct 2012 21:59:00 +0900 
+  * Removed known-issue notes on MIME mapping and Google Cloud Storage
+    Manager folder representation incompatibility.
+  * Removed libxml++ dependency.
+  * Fixed libcurl init/cleanup bug.
 
-s3fuse-fvs (0.12.1) release 2
-  * Support auto select contet-type
-  * Support no namespace xml format
-  * Support end point schema configuration
-  * Support put object what over 5 Mbyte through proxy
-  * Fixed refarence count inconsistency of cache object
-  * Fixed forget remove cahe of object when move directory 
+ -- Tarick Bedeir <tarick@bedeir.com>  Wed, 21 Aug 2013 18:41:50 -0500
 
- -- Hiroyuki Kakine <kakine@iij.ad.jp>  Thu, 25 Oct 2012 19:44:00 +0900
+s3fuse (0.14) unstable; urgency=low
+
+  * NEW: Multipart (resumable) uploads for Google Cloud Storage.
+  * NEW: Support for FV/S.
+  * NEW: Set file content type by examining extension.
+  * NEW: Set Cache-Control header with extended attribute.
+  * NEW: Allow creation of "special" files (FIFOs, devices, etc.).
+  * Allow verbosity to be specified explicitly on the command line.
+  * Fix multipart download bug that prevented some transfers from resuming.
+  * Use real user ID/group ID rather than effective IDs.
+  * Only use user ID/group ID/mode in object metadata if values are valid.
+  * Set and retrieve object creation time (on newly-created objects).
+  * Fix inconsistent state bug when reopening file immediately after closing.
+  * Various POSIX compliance fixes.
+
+ -- Tarick Bedeir <tarick@bedeir.com>  Sat, 06 Apr 2013 14:57:10 -0600
+
+s3fuse (0.13.1) unstable; urgency=low
+
+  * OS X: Fixed bug that resulted in command-line arguments being ignored.
+
+ -- Tarick Bedeir <tarick@bedeir.com>  Fri, 15 Feb 2013 20:06:26 -0600
+
+s3fuse (0.13) unstable; urgency=low
+
+  * NEW: File encryption. See README.
+  * NEW: Glacier restore requests. See README.
+  * NEW: Add least-recently-used eviction to object cache, controlled by the
+    max_objects_in_cache configuration option.
+  * NEW: OS X binaries.
+  * IMPORTANT: Removed "auth_data" configuration option. For AWS, use
+    "aws_secret_file" instead. For Google Storage, use "gs_token_file".
+  * IMPORTANT: Search for configuration file in ~/.s3fuse/s3fuse.conf before
+    trying %sysconfdir/s3fuse.conf (this is usually /etc/s3fuse.conf or
+    /usr/local/s3fuse.conf).
+  * Switched to SHA256 for file integrity check. File hash, if available, will 
+    be in the "s3fuse_sha256" extended attribute.
+  * Added standalone SHA256 hash generator ("s3fuse_sha256_hash") that uses the
+    same hash-list method as s3fuse.
+  * Changed handling of last-modified times. Some timestamps may be inaccurate 
+    (but will be correct when updated).
+  * Renamed built-in extended attributes "__content_type__" and "__etag__" to 
+    "s3fuse_content_type" and "s3fuse_etag", respectively.
+  * Removed "__md5__" extended attribute.
+  * Added note about daemon_timeout.
+  * Removed xattr_prefix configuration option and made "user." standard (Linux
+    only).
+  * Added event counters/statistics ("stats_file" config option).
+  * Made "noappledouble" and "daemon_timeout=3600" default options on OS X.
+  * Various robustness fixes.
+  * Add manual pages.
+
+ -- Tarick Bedeir <tarick@bedeir.com>  Sun, 10 Feb 2013 10:51:16 -0600
 
 s3fuse (0.12) unstable; urgency=low
 

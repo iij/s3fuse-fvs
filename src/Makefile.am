@@ -1,95 +1,53 @@
-AM_CPPFLAGS += $(BOOST_CPPFLAGS) -DPACKAGE_NAME="\"${PACKAGE_NAME}\"" -DPACKAGE_TARNAME="\"${PACKAGE_TARNAME}\"" -DPACKAGE_VERSION="\"${PACKAGE_VERSION}\""
-AM_LDFLAGS += $(BOOST_THREAD_LDFLAGS)
-
-LDADD = $(BOOST_THREAD_LIBS)
+SUBDIRS = base crypto fs services threads .
+DIST_SUBDIRS = $(SUBDIRS) tests
 
 if BUILD_TESTS
-SUBDIRS = . tests
+SUBDIRS += tests
 endif
 
-bin_PROGRAMS = s3fuse-fvs s3fuse-fvs_gs_get_token
+service_libs =
 
-s3fuse_fvs_SOURCES = \
-	fvs_service_impl.cc \
-	fvs_service_impl.h \
-	aws_service_impl.cc \
-	aws_service_impl.h \
-	config.cc \
-	config.inc \
-	config.h \
-	file_transfer.cc \
-	file_transfer.h \
-	fs.cc \
-	fs.h \
-	gs_service_impl.cc \
-	gs_service_impl.h \
-	logger.cc \
-	logger.h \
-	main.cc \
-	object_cache.cc \
-	object_cache.h \
-	object.cc \
-	object.h \
-	open_file.cc \
-	open_file.h \
-	request.cc \
-	request.h \
-	service.cc \
-	service.h \
-	service_impl.cc \
-	service_impl.h \
-	ssl_locks.cc \
-	ssl_locks.h \
-	thread_pool.cc \
-	thread_pool.h \
-	util.cc \
-	util_gnu.inc \
-	util_macos.inc \
-	util.h \
-	version.h \
-	xattr.cc \
-	xattr.h \
-	xml.cc \
-	xml.h \
-	mime_types.cc \
-	mime_types.h
+if WITH_AWS
+service_libs += services/aws/libs3fuse_services_aws.a
+endif
 
-s3fuse_fvs_gs_get_token_SOURCES = \
-	fvs_service_impl.cc \
-	fvs_service_impl.h \
-	aws_service_impl.cc \
-	aws_service_impl.h \
-	config.cc \
-	config.inc \
-	config.h \
-	gs_service_impl.cc \
-	gs_service_impl.h \
-	gs_get_token.cc \
-	logger.cc \
-	logger.h \
-	object_cache.cc \
-	object_cache.h \
-	object.cc \
-	object.h \
-	request.cc \
-	request.h \
-	service.cc \
-	service.h \
-	service_impl.cc \
-	service_impl.h \
-	ssl_locks.cc \
-	ssl_locks.h \
-	xattr.cc \
-	xattr.h \
-	util.cc \
-	util_gnu.inc \
-	util_macos.inc \
-	util.h \
-	mime_types.cc \
-	mime_types.h
+if WITH_FVS
+service_libs += services/fvs/libs3fuse_services_fvs.a
+endif
 
-dist_sysconf_DATA = \
-	s3fuse-fvs.conf
+if WITH_GS
+service_libs += services/gs/libs3fuse_services_gs.a
+endif
 
-s3fuse-fvs.conf: config.inc
-	../build-config.sh $^ $@
+# the order of archives in s3fuse_libs matters -- they must be listed such that if A
+# requires symbols provided by B, then A must appear before B
+
+s3fuse_libs = \
+	fs/libs3fuse_fs.a \
+	$(service_libs) \
+	threads/libs3fuse_threads.a \
+	services/libs3fuse_services.a \
+	crypto/libs3fuse_crypto.a \
+	base/libs3fuse_base.a
+
+init_src = \
+	init.cc \
+	init.h
+
+bin_PROGRAMS = s3fuse s3fuse_sha256_sum s3fuse_vol_key
+
+if WITH_GS
+bin_PROGRAMS += s3fuse_gs_get_token
+endif
+
+s3fuse_SOURCES = $(init_src) main.cc operations.cc operations.h
+s3fuse_LDADD = $(s3fuse_libs) $(LDADD)
+
+s3fuse_gs_get_token_SOURCES = gs_get_token.cc
+s3fuse_gs_get_token_LDADD = $(s3fuse_libs) $(LDADD)
+
+s3fuse_sha256_sum_SOURCES = sha256_sum.cc
+s3fuse_sha256_sum_LDADD = $(s3fuse_libs) $(LDADD)
+
+s3fuse_vol_key_SOURCES = $(init_src) vol_key.cc
+s3fuse_vol_key_LDADD = $(s3fuse_libs) $(LDADD)

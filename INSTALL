@@ -1,10 +1,10 @@
-Building s3fuse-fvs
-===================
+Building s3fuse
+===============
 
 From a Distribution Tarball
 ---------------------------
 
-To build from a distribution tarball (s3fuse-fvs-*.tar.gz):
+To build from a distribution tarball (s3fuse-*.tar.gz):
 
   ./configure
   make
@@ -24,25 +24,22 @@ build.sh will invoke "autoreconf" to build the configure scripts, then call
 Debian Packages
 ---------------
 
-To build a Debian package (.deb):
+To build a Debian package (.deb), from the packages directory:
 
-  ./build-deb.sh <output-directory>
+  scripts/build-debian.sh <dist-tarball>
 
 RPMs
 ----
 
-To build an RPM:
+To build an RPM, from the packages directory:
 
-  ./build-rpm.sh <rpm-top-level-dir>
+  scripts/build-redhat.sh <dist-tarball>
 
-The top-level directory should contain directories named RPMS, SRPMS, SOURCES, 
-SPECS, and BUILD.
-
-Installing s3fuse-fvs
-=====================
+Installing s3fuse
+=================
 
 To install (after building a working copy):
 
   make install
 
-See README for notes on configuring s3fuse-fvs.
+See README for notes on configuring s3fuse.

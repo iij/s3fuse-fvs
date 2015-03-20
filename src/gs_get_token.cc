@@ -4,7 +4,7 @@
  * Gets an OAuth refresh token for Google Storage and saves it in a file.
  * -------------------------------------------------------------------------
  *
- * Copyright (c) 2011, Tarick Bedeir.
+ * Copyright (c) 2012, Tarick Bedeir.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,16 @@
 #include <fstream>
 #include <iostream>
 
-#include "gs_service_impl.h"
-#include "logger.h"
+#include "base/logger.h"
+#include "services/gs/impl.h"
 
-using namespace std;
+using std::cerr;
+using std::cin;
+using std::cout;
+using std::endl;
+using std::string;
 
-using namespace s3;
+using s3::services::gs::impl;
 
 int main(int argc, char **argv)
 {
@@ -35,22 +39,24 @@ int main(int argc, char **argv)
   time_t expiry;
 
   if (argc != 2) {
-    cerr << "Usage: " << argv[0] << " <token-file-name>" << endl;
+    const char *arg0 = strrchr(argv[0], '/');
+
+    cerr << "Usage: " << (arg0 ? arg0 + 1 : argv[0]) << " <token-file-name>" << endl;
     return 1;
   }
 
   try {
     // make sure we can write to the token file before we run the request.
-    gs_service_impl::write_token(argv[1], "");
+    impl::write_token(argv[1], "");
 
     cout << "Paste this URL into your browser:" << endl;
-    cout << gs_service_impl::get_new_token_url() << endl << endl;
+    cout << impl::get_new_token_url() << endl << endl;
 
     cout << "Please enter the authorization code: ";
     getline(cin, code);
 
-    gs_service_impl::get_tokens(gs_service_impl::GT_AUTH_CODE, code, &access_token, &expiry, &refresh_token);
-    gs_service_impl::write_token(argv[1], refresh_token);
+    impl::get_tokens(impl::GT_AUTH_CODE, code, &access_token, &expiry, &refresh_token);
+    impl::write_token(argv[1], refresh_token);
 
   } catch (const std::exception &e) {
     cerr << "Failed to get tokens: " << e.what() << endl;

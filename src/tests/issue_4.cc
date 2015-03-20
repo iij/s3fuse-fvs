@@ -1,11 +1,14 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
 #include <iostream>
 
-using namespace std;
+using std::cerr;
+using std::cout;
+using std::endl;
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
@@ -57,7 +60,7 @@ int main(int argc, char **argv)
   TZ(unlink(file));
   T(stat(file, &st), -1);
 
-  create_fd = open(file, O_CREAT);
+  create_fd = open(file, O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 
   if (create_fd == -1) {
     perror("create failed with error");

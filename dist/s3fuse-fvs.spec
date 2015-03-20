@@ -1,5 +1,5 @@
 %define name s3fuse-fvs
-%define version 0.12.3
+%define version 0.16
 %define release 1
 
 %define debug_package %{nil}
