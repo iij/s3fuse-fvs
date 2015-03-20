@@ -91,6 +91,7 @@ AM_CONDITIONAL([BUILD_TESTS], [test x$build_tests = xtrue])
 AM_CONDITIONAL([WITH_AWS], [test x$aws = xtrue])
 AM_CONDITIONAL([WITH_GS], [test x$gs = xtrue])
 AM_CONDITIONAL([WITH_FVS], [test x$fvs = xtrue])
+AM_CONDITIONAL([BUILD_RPM], [test x$build_rpm = xtrue])
 
 # set LDFLAGS rather than AM_LDFLAGS below because we need these flags
 # when using AC_CHECK_LIB
@@ -194,6 +195,7 @@ AC_CONFIG_FILES([src/crypto/Makefile src/crypto/tests/Makefile])
 AC_CONFIG_FILES([src/fs/Makefile src/fs/tests/Makefile])
 AC_CONFIG_FILES([src/services/Makefile src/services/aws/Makefile src/services/fvs/Makefile src/services/gs/Makefile])
 AC_CONFIG_FILES([src/threads/Makefile src/threads/tests/Makefile])
+AC_CONFIG_FILES([package/Makefile])
 
 AC_DEFINE(PACKAGE_VERSION_WITH_REV, [m4_format(["%s"], pkg_pretty_version)])
 

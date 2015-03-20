@@ -1,6 +1,22 @@
 ACLOCAL_AMFLAGS = -I .
 
-SUBDIRS = man src
+if BUILD_RPM
+SUBDIRS= package man src
+else
+SUBDIRS= man src
+endif
+
+rpm: dist
+	rpmdir=`pwd`/package;                                              \
+	rm -rf $$rpmdir;                                                   \
+	mkdir -p $$rpmdir/SOURCES;                                         \
+	mkdir -p $$rpmdir/RPMS;                                            \
+	mkdir -p $$rpmdir/SRPMS;                                           \
+	mkdir -p $$rpmdir/BUILD;                                           \
+	mkdir -p $$rpmdir/BUILDROOT;                                       \
+	mkdir -p $$rpmdir/SPECS;                                           \
+	cp ${PACKAGE_TARNAME}-${PACKAGE_VERSION}.tar.gz $$rpmdir/SOURCES/; \
+	rpmbuild -ba --define "_topdir $$rpmdir" package/s3fuse-fvs.spec
 
 coverage-report:
 	@grep 'ac_cs_config=.*code-coverage' config.status 2>&1 >/dev/null \
