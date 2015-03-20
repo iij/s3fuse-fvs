@@ -46,10 +46,13 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%config /etc/s3fuse-fvs.conf
-%doc ChangeLog
-%doc COPYING
-%doc INSTALL
+%config /etc/s3fuse.conf
 %doc README
-/usr/bin/s3fuse-fvs
-/usr/bin/s3fuse-fvs_gs_get_token
+%doc ChangeLog
+%doc INSTALL
+%doc COPYING
+%doc /usr/share/man/man5
+/usr/bin/s3fuse
+/usr/bin/s3fuse_gs_get_token
+/usr/bin/s3fuse_sha256_sum
+/usr/bin/s3fuse_vol_key
