@@ -36,6 +36,9 @@ make
 %install
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=$RPM_BUILD_ROOT install
+mv $RPM_BUILD_ROOT/etc/s3fuse.conf $RPM_BUILD_ROOT/etc/s3fuse-fvs.conf
+cd $RPM_BUILD_ROOT/usr/bin/
+ln -s s3fuse s3fuse-fvs
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -46,13 +49,14 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%config /etc/s3fuse.conf
+%config /etc/s3fuse-fvs.conf
 %doc README
 %doc ChangeLog
 %doc INSTALL
 %doc COPYING
 %doc /usr/share/man/man5
 /usr/bin/s3fuse
+/usr/bin/s3fuse-fvs
 /usr/bin/s3fuse_gs_get_token
 /usr/bin/s3fuse_sha256_sum
 /usr/bin/s3fuse_vol_key
