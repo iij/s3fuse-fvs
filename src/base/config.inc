@@ -58,6 +58,9 @@ CONFIG(std::string, volume_key_file, "", "name of file containing hex-encoded vo
   CONFIG(bool, allow_glacier_restores, false, "set to 'true'/'yes' to enable glacier object restores");
 #endif
 
+CONFIG_SECTION("Environment");
+CONFIG(std::string, tmp_path, "/tmp", "temporary file path");
+
 CONFIG_SECTION("Statistics");
 CONFIG(std::string, stats_file, "", "write statistics on various operations and exceptions to specified file if set");
 
