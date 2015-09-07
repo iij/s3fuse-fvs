@@ -16,10 +16,11 @@ BuildRequires: openssl-devel >= 0.9.8
 BuildRequires: boost-devel >= 1.41
 BuildRequires: fuse-devel >= 2.7.3
 BuildRequires: libxml2-devel >= 2.7.6
-BuildRequires: libcurl >= 7.0.0
+BuildRequires: libcurl-devel >= 7.0.0
 Requires: openssl >= 0.9.8
 Requires: boost >= 1.41
 Requires: fuse-libs >= 2.7.3
+Requires: libxml2 >= 2.7.6
 Requires: libcurl >= 7.0.0
 
 %description
